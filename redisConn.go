@@ -12,7 +12,7 @@ type RedisConn interface {
 	// Do sends a command to the server and returns the received reply.
 	Do(commandName string, args ...interface{}) (reply interface{}, err error)
 
-	RunScript(script string, keys int, args ...interface{}) (status string, err error)
+	RunScript(script string, keys int, args ...interface{}) (status int, err error)
 }
 
 type Conn struct {
@@ -29,6 +29,6 @@ func (m Conn) Do(cmd string, args ...interface{}) (reply interface{}, err error)
 	return resp.Str()
 }
 
-func (m Conn) RunScript(script string, keys int, args ...interface{}) (status string, err error) {
-	return util.LuaEval(m.Client, deleteScript, keys, args).Str()
+func (m Conn) RunScript(script string, keys int, args ...interface{}) (status int, err error) {
+	return util.LuaEval(m.Client, deleteScript, keys, args).Int()
 }
