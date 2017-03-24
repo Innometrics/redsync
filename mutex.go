@@ -5,8 +5,6 @@ import (
 	"encoding/base64"
 	"sync"
 	"time"
-
-	"github.com/garyburd/redigo/redis"
 )
 
 // A Mutex is a distributed mutual exclusion lock.
@@ -110,36 +108,35 @@ func (m *Mutex) genValue() (string, error) {
 func (m *Mutex) acquire(pool Pool, value string) bool {
 	conn := pool.Get()
 	defer conn.Close()
-	reply, err := redis.String(conn.Do("SET", m.name, value, "NX", "PX", int(m.expiry/time.Millisecond)))
+	reply, err := conn.Do("SET", m.name, value, "NX", "PX", int(m.expiry/time.Millisecond))
 	return err == nil && reply == "OK"
 }
 
-var deleteScript = redis.NewScript(1, `
+var deleteScript = `
 	if redis.call("GET", KEYS[1]) == ARGV[1] then
 		return redis.call("DEL", KEYS[1])
 	else
 		return 0
 	end
-`)
-
+`
 func (m *Mutex) release(pool Pool, value string) bool {
 	conn := pool.Get()
 	defer conn.Close()
-	status, err := deleteScript.Do(conn, m.name, value)
-	return err == nil && status != 0
+	status, err := conn.RunScript(deleteScript, 1, m.name, value)
+	return err == nil && status != "0"
 }
 
-var touchScript = redis.NewScript(1, `
+var touchScript = `
 	if redis.call("GET", KEYS[1]) == ARGV[1] then
 		return redis.call("SET", KEYS[1], ARGV[1], "XX", "PX", ARGV[2])
 	else
 		return "ERR"
 	end
-`)
+`
 
 func (m *Mutex) touch(pool Pool, value string, expiry int) bool {
 	conn := pool.Get()
 	defer conn.Close()
-	status, err := redis.String(touchScript.Do(conn, m.name, value, expiry))
+	status, err := conn.RunScript(touchScript, 1, m.name, value, expiry)
 	return err == nil && status != "ERR"
 }
