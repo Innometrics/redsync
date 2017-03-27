@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/mediocregopher/radix.v2/pool"
 	"log"
-	"redsync"
+	"github.com/Innometrics/redsync"
 )
 
 func main() {
@@ -11,7 +11,7 @@ func main() {
 	if(err != nil) {
 		log.Fatal(err)
 	}
-	red := redsync.New([] redsync.Pool{redsync.RedixV2Pool{p}})
+	red := redsync.New([] redsync.Pool{&redsync.RedixV2Pool{p}})
 	m := red.NewMutex("foo1")
 	log.Println(m.Lock())
 	log.Println(m.Unlock())

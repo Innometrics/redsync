@@ -19,16 +19,16 @@ type Conn struct {
 	*redis.Client
 }
 
-func (m Conn) Close() (error) {
+func (m *Conn) Close() (error) {
 	m.Client.Close()
 	return nil
 }
 
-func (m Conn) Do(cmd string, args ...interface{}) (reply interface{}, err error) {
+func (m *Conn) Do(cmd string, args ...interface{}) (reply interface{}, err error) {
 	resp := m.Client.Cmd(cmd, args)
 	return resp.Str()
 }
 
-func (m Conn) RunScript(script string, keys int, args ...interface{}) (status int, err error) {
+func (m *Conn) RunScript(script string, keys int, args ...interface{}) (status int, err error) {
 	return util.LuaEval(m.Client, deleteScript, keys, args).Int()
 }
