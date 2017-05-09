@@ -106,8 +106,11 @@ func (m *Mutex) genValue() (string, error) {
 }
 
 func (m *Mutex) acquire(pool Pool, value string) bool {
-	conn := pool.Get()
-	defer conn.Close()
+	conn, err := pool.Get()
+	if err != nil {
+		return false
+	}
+	defer pool.Put(conn)
 	reply, err := conn.Do("SET", m.name, value, "NX", "PX", int(m.expiry/time.Millisecond))
 	return err == nil && reply == "OK"
 }
@@ -120,8 +123,11 @@ var deleteScript = `
 	end
 `
 func (m *Mutex) release(pool Pool, value string) bool {
-	conn := pool.Get()
-	defer conn.Close()
+	conn, err := pool.Get()
+	if err != nil {
+		return false
+	}
+	defer pool.Put(conn)
 	status, err := conn.RunScript(deleteScript, 1, m.name, value)
 	return err == nil && status != 0
 }
@@ -135,8 +141,11 @@ var touchScript = `
 `
 
 func (m *Mutex) touch(pool Pool, value string, expiry int) bool {
-	conn := pool.Get()
-	defer conn.Close()
+	conn, err := pool.Get()
+	if err != nil {
+		return false
+	}
+	defer pool.Put(conn)
 	status, err := conn.RunScript(touchScript, 1, m.name, value, expiry)
 	return err == nil && status != 0
 }
